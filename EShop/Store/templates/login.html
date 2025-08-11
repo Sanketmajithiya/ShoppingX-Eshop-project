@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock title %}
+{% block content %}
+
+<div class="container my-5">
+    <div class="p-4">
+        <div class="col-lg-5 mt-5 mb-5 mx-auto border rounded py-4 px-5 shadow">
+            <h3 class="alert alert-light border mt-4 mb-4 rounded text-center">Login-Here</h3>
+            <form action="/login" method="POST">
+                {% csrf_token %}
+                {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    {{error}}
+                  <h4 class="alert-heading"></h4>
+                </div>
+                {% endif %}
+                <!-- Email -->
+                <div class="form-group mb-4">
+                    <label for="email" class="font-weight-bold">Email</label>
+                    <input required type="email" name="Email" id="email" value="{{values.Email}}" class="form-control form-control-sm" placeholder="example@gmail.com">
+                </div>
+
+                <!-- Password -->
+                <div class="form-group mb-4">
+                    <label for="password" class="font-weight-bold">Password</label>
+                    <input type="password" name="password" id="password" value="{{values.password}}" class="form-control form-control-sm" placeholder="******">
+                </div>
+                <!-- Submit Button -->
+                <div class="form-group text-center">
+                    <input class="btn btn-info col-lg-4" type="submit" value="Login">
+                </div>
+            </form>
+            <!-- Forgot Password Button -->
+            <div class="form-group text-center mt-3">
+                <a href="{% url 'forgotpassword'%}" class="btn btn-link">Forgot Password?</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

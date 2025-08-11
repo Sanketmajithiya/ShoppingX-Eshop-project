@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Cart{% endblock title %}
+{% block content %}
+{% load cart %}
+{% load custom_filter %}
+
+<div class="container">
+    <div class="border rounded p-4 m-4">
+        <p class="display-4 pl-4 ml-4">Your Cart</p>
+
+        <!-- Responsive wrapper -->
+        <div class="table-responsive">
+            <table class="table align-middle text-nowrap">
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        <th>Sno</th>
+                        <th>Image</th>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Delete</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr data-product-id="{{ product.id }}">
+                        <td>
+                            <input type="checkbox" class="select-product" checked>
+                        </td>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <img style="height: 80px;" class="rounded-circle" src="{{ product.Image.url }}" alt="{{ product.Name }}">
+                        </td>
+                        <td>{{ product.Name }}</td>
+                        <td class="price" data-price="{{ product.Price }}">{{ product.Price|currency }}</td>
+                        <td>
+                            <div class="d-flex justify-content-center align-items-center flex-nowrap gap-1">
+                                <button class="btn btn-outline-secondary btn-sm btn-decrease" type="button">−</button>
+                                <input type="number" class="form-control form-control-sm quantity-input text-center" value="{{ product|cart_quantity:request.session.cart }}" min="1" readonly style="width: 60px;">
+                                <button class="btn btn-outline-secondary btn-sm btn-increase" type="button">+</button>
+                            </div>
+                        </td>
+                        <td class="total" data-total="{{ product|price_total:request.session.cart }}">{{ product|price_total:request.session.cart|currency }}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm btn-delete">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="6" class="text-end">Total</th>
+                        <th id="cart-total" class="text-end">{{ products|total_cart_price:request.session.cart|currency }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <hr>
+        <div class="m-3 p-3 text-end">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#checkoutModal" class="btn btn-outline-info col-lg-3">Check Out</a>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="checkoutModalLabel">Check-Out Form</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="/check-out" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <input type="text" name="address" id="address" class="form-control" placeholder="Enter your address" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter your phone number" required>
+                    </div>
+                    <div class="text-end">
+                        <button id="rzp-button1" type="submit" class="btn btn-info col-lg-6">Pay-With Razorpay</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript remains the same -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const cartTotalEl = document.getElementById('cart-total');
+
+    function updateCartTotal() {
+        let total = 0;
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const checkbox = row.querySelector('.select-product');
+            if (checkbox && checkbox.checked) {
+                const totalPrice = parseFloat(row.querySelector('.total').dataset.total);
+                total += totalPrice;
+            }
+        });
+        cartTotalEl.textContent = '₹ ' + total.toFixed(2);
+    }
+
+    function updateSessionCart(productId, quantity) {
+        fetch('/update-cart/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ product_id: productId, quantity: quantity })
+        }).then(res => {
+            if (!res.ok) alert('Failed to update cart');
+        }).catch(() => alert('Failed to update cart'));
+    }
+
+    function removeFromSessionCart(productId) {
+        fetch('/remove-from-cart/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ product_id: productId })
+        }).then(res => {
+            if (!res.ok) alert('Failed to remove product');
+        }).catch(() => alert('Failed to remove product'));
+    }
+
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    document.querySelectorAll('.btn-increase').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const row = btn.closest('tr');
+            const quantityInput = row.querySelector('.quantity-input');
+            let quantity = parseInt(quantityInput.value);
+            quantity++;
+            quantityInput.value = quantity;
+
+            const price = parseFloat(row.querySelector('.price').dataset.price);
+            const totalCell = row.querySelector('.total');
+            const newTotal = price * quantity;
+
+            totalCell.textContent = '₹ ' + newTotal.toFixed(2);
+            totalCell.dataset.total = newTotal;
+
+            updateCartTotal();
+            updateSessionCart(row.dataset.productId, quantity);
+        });
+    });
+
+    document.querySelectorAll('.btn-decrease').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const row = btn.closest('tr');
+            const quantityInput = row.querySelector('.quantity-input');
+            let quantity = parseInt(quantityInput.value);
+            if (quantity > 1) {
+                quantity--;
+                quantityInput.value = quantity;
+
+                const price = parseFloat(row.querySelector('.price').dataset.price);
+                const totalCell = row.querySelector('.total');
+                const newTotal = price * quantity;
+
+                totalCell.textContent = '₹ ' + newTotal.toFixed(2);
+                totalCell.dataset.total = newTotal;
+
+                updateCartTotal();
+                updateSessionCart(row.dataset.productId, quantity);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const row = btn.closest('tr');
+            const productId = row.dataset.productId;
+            removeFromSessionCart(productId);
+            row.remove();
+            updateCartTotal();
+        });
+    });
+
+    document.querySelectorAll('.select-product').forEach(chk => {
+        chk.addEventListener('change', updateCartTotal);
+    });
+});
+</script>
+
+{% endblock %}

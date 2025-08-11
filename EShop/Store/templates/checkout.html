@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout Payment</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: rgb(248, 249, 250); /* Subtle cool background */
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 50px auto;
+            background: #fff;
+            padding: 40px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            text-align: center;
+            color: black; /* Text color set to black */
+        }
+
+        h2 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #333; /* Heading color to dark gray */
+        }
+
+        .amount {
+            font-size: 1.5em;
+            color: #4caf50;
+            margin: 20px 0;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            width: 230px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Pay Now Button */
+        .pay-now-button {
+            background-color: #4caf50;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .pay-now-button:hover {
+            background-color: #45a049;
+            transform: translateY(-7px); /* 3D hover effect */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Go Back to Cart Button */
+        .back-button {
+            background-color: #ff5722;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .back-button:hover {
+            background-color: #e64a19;
+            transform: translateY(-7px); /* 3D hover effect */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Complete Your Payment</h2>
+        <p class="amount">Total Amount: ₹{{ total_amount }}</p>
+
+        <form action="{% url 'payment_success' %}" method="POST" id="payment-form">
+            {% csrf_token %}
+            <input type="hidden" name="razorpay_order_id" value="{{ razorpay_order_id }}">
+            <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
+            <input type="hidden" name="razorpay_signature" id="razorpay_signature">
+            
+            <!-- Pay Now Button (Dynamic Style) -->
+            <button type="button" id="rzp-button" class="pay-now-button">Pay Now</button>
+        </form>
+
+        <!-- Back Button (Dynamic Style) -->
+        <div class="button-container">
+            <a href="/cart">
+                <button class="back-button">Go Back to Cart</button>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        var options = {
+            "key": "rzp_test_XJiPjOvNtZi5Mr", 
+            "amount": "{{ total_amount }}", 
+            "currency": "INR",
+            "name": "shoppinglyx",
+            "description": "Purchases Transaction",
+            "image": "https://example.com/your_logo",  // Update with your actual logo URL
+            "order_id": "{{ razorpay_order_id }}",  // This should be a dynamic order ID
+            "handler": function (response){
+                document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+                document.getElementById('razorpay_signature').value = response.razorpay_signature;
+                document.getElementById('payment-form').submit();
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+
+        var rzp1 = new Razorpay(options);
+        document.getElementById('rzp-button').onclick = function(e){
+            rzp1.open();
+            e.preventDefault();
+        }
+
+        rzp1.on('payment.failed', function (response){
+            alert(response.error.code);
+            alert(response.error.description);
+            alert(response.error.reason);
+            alert(response.error.metadata.order_id);
+            alert(response.error.metadata.payment_id);
+        });
+    </script>
+</body>
+</html>
