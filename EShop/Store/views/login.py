@@ -63,7 +63,7 @@ def forgot_password(request):
             customer.save()
            
             #  Send OTP email using Celery task
-            send_otp_email.delay(email, otp, customer.First_Name)
+            send_otp_email(email, otp, customer.First_Name)
 
             request.session['email'] = email  # Store email in session
             messages.success(request, 'OTP sent to your email.')
@@ -98,7 +98,7 @@ def resend_otp(request):
         customer.save()
 
         # Send OTP email asynchronously using Celery task
-        send_otp_email.delay(email, otp, customer.First_Name)
+        send_otp_email(email, otp, customer.First_Name)
     
         messages.success(request, 'OTP resent to your email.')
     else:
